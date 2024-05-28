@@ -33,7 +33,7 @@ jobs:
       - name: Post Plan as Comment
         uses: actions/github-script@v7
         env:
-          PLAN: "terraform\n${{ steps.show.outputs.stdout }}"
+          PLAN: "${{ steps.show.outputs.stdout }}"
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -48,7 +48,7 @@ jobs:
             })
 
             // 2. Prepare format of the comment
-            const output = `####Terraform Plan
+            const output = `#### Terraform Plan
             \`\`\`\n
             ${process.env.PLAN}
             \`\`\`
@@ -70,3 +70,23 @@ jobs:
                 body: output
               })
             }
+
+      - name: Setup Infracost
+        if: env.INFRACOST_API_KEY
+        uses: infracost/actions/setup@v2
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+          currency: AUD
+
+      - name: Add Infracost Details as Comment
+        if: env.INFRACOST_API_KEY
+        run: |
+          terraform show -json tfplan | tee ${{ runner.temp }}/plan.json
+          infracost breakdown --path ${{ runner.temp }}/plan.json \
+                              --format json \
+                              --out-file=${{ runner.temp }}/infracost.json
+          infracost comment github --path=${{ runner.temp }}/infracost.json \
+                                     --repo=${{ github.repository }} \
+                                     --github-token=${{ secrets.GITHUB_TOKEN }} \
+                                     --pull-request=${{ github.event.pull_request.number }} \
+                                     --behavior=update
