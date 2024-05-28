@@ -1,4 +1,4 @@
-name: Terraform Pull Request
+name: Pull Request Validation
 
 permissions:
   contents: read
@@ -11,12 +11,19 @@ on:
 
 jobs:
   format:
+    name: Terraform Format
     uses: SoliDeoGloria-Tech/workflow-testing/.github/workflows/terraform-format.yaml@main
     secrets: inherit
   validate:
+    name: Terraform Validate
     uses: SoliDeoGloria-Tech/workflow-testing/.github/workflows/terraform-validate.yaml@main
     secrets: inherit
+  docs:
+    name: Terraform Docs
+    uses: SoliDeoGloria-Tech/workflow-testing/.github/workflows/terraform-docs.yaml@main
+    secrets: inherit
   plan:
+    name: Terraform Plan
     needs: [format, validate]
     uses: SoliDeoGloria-Tech/workflow-testing/.github/workflows/terraform-plan.yaml@main
     secrets: inherit
