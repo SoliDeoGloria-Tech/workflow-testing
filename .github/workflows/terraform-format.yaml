@@ -14,10 +14,10 @@ jobs:
     runs-on: [self-hosted, linux, x64]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.1.6
+        uses: actions/checkout@v4
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3.1.1
+        uses: hashicorp/setup-terraform@v2 # v3 uses NodeJS 20
 
       - name: Terraform Format
         run: terraform fmt -check -recursive
