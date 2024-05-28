@@ -2,6 +2,8 @@ name: Terraform
 
 permissions:
   contents: read
+  id-token: write # Required for OIDC authentication
+  pull-requests: write # Required to update the PR with run details
 
 on:
   pull_request:
@@ -44,8 +46,10 @@ jobs:
           git diff-index --quiet HEAD --
           if [ $? -ne 0 ]; then
             echo "::error ::Uncommitted change(s) found!"
+            echo "### :x: Terraform Docs need to be updated" >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
+          echo "### :white_check_mark: Terraform Docs up to date" >> $GITHUB_STEP_SUMMARY
 
   format:
     name: Formatting
@@ -58,7 +62,14 @@ jobs:
         uses: hashicorp/setup-terraform@v2 # v3 uses NodeJS 20
 
       - name: Terraform Format
-        run: terraform fmt -check -recursive
+        run: |
+          terraform fmt -check -recursive
+          local status=$?
+          if [ $status -ne 0 ]; then
+            echo "### :x: Terraform Formatting need to be updated" >> $GITHUB_STEP_SUMMARY
+            exit $status
+          fi
+          echo "### :white_check_mark: Terraform Formatting is correct" >> $GITHUB_STEP_SUMMARY
 
   lint:
     name: Linting
@@ -73,7 +84,14 @@ jobs:
           tflint_version: v0.51.1
 
       - name: Run tflint
-        run: tflint --format compact --no-color --recursive
+        run: |
+          tflint --format compact --no-color --recursive
+          local status=$?
+          if [ $status -ne 0 ]; then
+            echo "### :x: Terraform Linting failed" >> $GITHUB_STEP_SUMMARY
+            exit $status
+          fi
+          echo "### :white_check_mark: Terraform Linting successful" >> $GITHUB_STEP_SUMMARY
 
   validate:
     name: Validation
@@ -90,7 +108,14 @@ jobs:
 
       - name: Terraform Validate
         id: validate
-        run: terraform validate -no-color
+        run: |
+          terraform validate -no-color
+          local status=$?
+          if [ $status -ne 0 ]; then
+            echo "### :x: Terraform Linting failed" >> $GITHUB_STEP_SUMMARY
+            exit $status
+          fi
+          echo "### :white_check_mark: Terraform Linting successful" >> $GITHUB_STEP_SUMMARY
 
   plan:
     name: Change Plan
@@ -110,8 +135,15 @@ jobs:
 
       - name: Terraform Plan
         id: plan
-        run: terraform plan -no-color -out=tfplan
         continue-on-error: true
+        run: |
+          terraform plan -no-color -out=tfplan
+          local status=$?
+          if [ $status -ne 0 ]; then
+            echo "### :x: Terraform Plan failed" >> $GITHUB_STEP_SUMMARY
+            exit $status
+          fi
+          echo "### :white_check_mark: Terraform Plan successful" >> $GITHUB_STEP_SUMMARY
 
       - name: Terraform Show
         id: show
