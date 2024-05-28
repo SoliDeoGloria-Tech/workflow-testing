@@ -46,16 +46,6 @@ jobs:
             const botComment = comments.find(comment => {
               return comment.user.type === 'Bot' && comment.body.includes('Terraform Plan')
             })
-            switch ("${{ steps.plan.outcome }}".toLowerCase()) {
-              case "success":
-                plan_status = "✅"
-                break;
-              case "failure":
-                plan_status = "❌"
-                break;
-              default: 
-                plan_status = "⚠️"
-            }
 
             // 2. Prepare format of the comment
             const output = `####Terraform Plan
