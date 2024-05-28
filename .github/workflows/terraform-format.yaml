@@ -1,0 +1,23 @@
+name: Terraform Format
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    types: ["opened", "synchronize"]
+    paths:
+      - "**.tf"
+
+jobs:
+  format:
+    runs-on: [self-hosted, linux, x64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.1.6
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3.1.1
+
+      - name: Terraform Format
+        run: terraform fmt -check -recursive
