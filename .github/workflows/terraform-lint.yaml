@@ -1,0 +1,22 @@
+name: Terraform Format
+
+permissions:
+  contents: read
+
+on:
+  workflow_call:
+
+jobs:
+  lint:
+    runs-on: [self-hosted, linux, x64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup tflint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: v0.51.1
+
+      - name: Run tflint
+        run: tflint --format compact --no-color --recursive
