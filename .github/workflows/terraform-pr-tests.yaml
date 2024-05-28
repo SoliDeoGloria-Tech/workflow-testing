@@ -1,4 +1,4 @@
-name: Pull Request Validation
+name: Terraform
 
 permissions:
   contents: read
@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   docs:
-    name: Terraform Docs
+    name: Documentation
     runs-on: [self-hosted, linux]
     steps:
       - name: Checkout
@@ -39,14 +39,16 @@ jobs:
 
       - name: Generate Docs
         run: |
-          terraform-docs . --recursive
-          if [ $(git_status) -ne 0 ]; then
-            echo "::error ::Uncommitted change(s) has been found!"
+          terraform-docs .
+          git update-index --refresh
+          git diff-index --quiet HEAD --
+          if [ $? -ne 0 ]; then
+            echo "::error ::Uncommitted change(s) found!"
             exit 1
           fi
 
   format:
-    name: Terraform Format
+    name: Formatting
     runs-on: [self-hosted, linux]
     steps:
       - name: Checkout
@@ -59,7 +61,7 @@ jobs:
         run: terraform fmt -check -recursive
 
   lint:
-    name: Terraform Lint
+    name: Linting
     runs-on: [self-hosted, linux]
     steps:
       - name: Checkout
@@ -74,7 +76,7 @@ jobs:
         run: tflint --format compact --no-color --recursive
 
   validate:
-    name: Terraform Validate
+    name: Validation
     runs-on: [self-hosted, linux]
     steps:
       - name: Checkout
@@ -91,7 +93,7 @@ jobs:
         run: terraform validate -no-color
 
   plan:
-    name: Terraform Plan
+    name: Change Plan
     needs:
       - format
       - validate
