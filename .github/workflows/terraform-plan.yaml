@@ -6,10 +6,7 @@ permissions:
   id-token: write # Required for OIDC authentication
 
 on:
-  pull_request:
-    types: ["opened", "synchronize"]
-    paths:
-      - "**.tf"
+  workflow_call:
 
 jobs:
   plan:
@@ -31,7 +28,7 @@ jobs:
 
       - name: Terraform Show
         id: show
-        run: terraform show tfplan
+        run: terraform show -no-color tfplan
 
       - name: Post Plan as Comment
         uses: actions/github-script@v7

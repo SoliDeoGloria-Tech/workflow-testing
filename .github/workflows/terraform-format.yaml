@@ -4,10 +4,7 @@ permissions:
   contents: read
 
 on:
-  pull_request:
-    types: ["opened", "synchronize"]
-    paths:
-      - "**.tf"
+  workflow_call:
 
 jobs:
   format:
