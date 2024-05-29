@@ -33,10 +33,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install terraform-docs
+        env:
+          TFDOC_VERSION: v0.17.0
         run: |
-          os=$(echo "$RUNNER_OS" | tr '[:upper:]' '[:lower:]')
-          arch=$(echo "$RUNNER_ARCH" | tr '[:upper:]' '[:lower:]')
-          curl -Lo ./terraform-docs.tar.gz https://github.com/terraform-docs/terraform-docs/releases/download/v0.17.0/terraform-docs-v0.17.0-${os}-${arch}.tar.gz
+          curl -Lo ./terraform-docs.tar.gz https://github.com/terraform-docs/terraform-docs/releases/download/${TFDOC_VERSION}/terraform-docs-${TFDOC_VERSION}-$(uname | tr '[:upper:]' '[:lower:]')-$(uname -m).tar.gz
           tar -xzf terraform-docs.tar.gz
           chmod +x terraform-docs
           mv terraform-docs /usr/local/bin/terraform-docs
