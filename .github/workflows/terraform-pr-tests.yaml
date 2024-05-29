@@ -43,11 +43,20 @@ jobs:
           chmod +x terraform-docs
           mv terraform-docs /usr/local/bin/terraform-docs
 
+      # If we dont initialize Terraform, can end up with inconsistent provider versions
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2 # v3 uses NodeJS 20
+        with:
+          terraform_version: ${{ vars.terraform_version || 'latest' }}
+
+      - name: Inititialize Terraform
+        run: terraform init -backend=false
+
       - name: Generate Docs
         run: |
           terraform-docs .
           git update-index --refresh
-          git diff-index --quiet HEAD --
+          git diff-index HEAD --
           if [ $? -ne 0 ]; then
             echo "::error ::Uncommitted change(s) found!"
             echo "### :x: Terraform Docs need to be updated" >> $GITHUB_STEP_SUMMARY
