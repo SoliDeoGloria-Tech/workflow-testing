@@ -34,7 +34,7 @@ jobs:
 
       - name: Install terraform-docs
         run: |
-          curl -Lo ./terraform-docs.tar.gz https://github.com/terraform-docs/terraform-docs/releases/download/v0.17.0/terraform-docs-v0.17.0-$(uname)-amd64.tar.gz
+          curl -Lo ./terraform-docs.tar.gz https://github.com/terraform-docs/terraform-docs/releases/download/v0.17.0/terraform-docs-v0.17.0-${RUNNER_OS@L}-${RUNNER_ARCH@L}.tar.gz
           tar -xzf terraform-docs.tar.gz
           chmod +x terraform-docs
           mv terraform-docs /usr/local/bin/terraform-docs
@@ -75,13 +75,28 @@ jobs:
     name: Linting
     runs-on: [self-hosted, linux]
     steps:
+      # The runner GITHUB_TOKEN only has permissions to its own repository
+      # so we need a token from an app to allow Terraform to download modules
+      # from other repositories in the org.
+      - uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ vars.CHECKOUT_APP_ID }}
+          private-key: ${{ secrets.CHECKOUT_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Setup tflint
         uses: terraform-linters/setup-tflint@v4
         with:
-          tflint_version: v0.51.1
+          tflint_version: ${{ vars.tflint_version || 'latest' }}
+
+      - name: Initialize tflint
+        run: tflint --init
 
       - name: Run tflint
         run: |
@@ -97,13 +112,25 @@ jobs:
     name: Validation
     runs-on: [self-hosted, linux]
     steps:
+      - uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ vars.CHECKOUT_APP_ID }}
+          private-key: ${{ secrets.CHECKOUT_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: true
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2 # v3 uses NodeJS 20
+        with:
+          terraform_version: ${{ vars.terraform_version || 'latest' }}
 
-      - name: Terraform Init
+      - name: Inititialize Terraform
         run: terraform init -backend=false
 
       - name: Terraform Validate
@@ -124,13 +151,25 @@ jobs:
       - validate
     runs-on: [self-hosted, linux]
     steps:
+      - uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ vars.CHECKOUT_APP_ID }}
+          private-key: ${{ secrets.CHECKOUT_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: true
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2 # v3 uses NodeJS 20
+        with:
+          terraform_version: ${{ vars.terraform_version || 'latest' }}
 
-      - name: Terraform Init
+      - name: Inititialize Terraform
         run: terraform init
 
       - name: Terraform Plan
@@ -189,14 +228,12 @@ jobs:
             }
 
       - name: Setup Infracost
-        if: env.INFRACOST_API_KEY
         uses: infracost/actions/setup@v2
         with:
           api-key: ${{ secrets.INFRACOST_API_KEY }}
           currency: AUD
 
       - name: Add Infracost Details as Comment
-        if: env.INFRACOST_API_KEY
         run: |
           terraform show -json tfplan | tee ${{ runner.temp }}/plan.json
           infracost breakdown --path ${{ runner.temp }}/plan.json \
