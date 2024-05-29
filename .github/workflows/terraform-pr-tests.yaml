@@ -58,8 +58,8 @@ jobs:
           git update-index --refresh
           git diff-index HEAD --
           if [ $? -ne 0 ]; then
-            echo "::error ::Uncommitted change(s) found!"
-            echo "### :x: Terraform Docs need to be updated" >> $GITHUB_STEP_SUMMARY
+            echo "::error::Uncommitted change(s) found!"
+            echo "### :x: Terraform Docs need to be updated\n$(git diff)" >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
           echo "### :white_check_mark: Terraform Docs up to date" >> $GITHUB_STEP_SUMMARY
