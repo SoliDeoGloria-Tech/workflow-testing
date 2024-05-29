@@ -34,7 +34,9 @@ jobs:
 
       - name: Install terraform-docs
         run: |
-          curl -Lo ./terraform-docs.tar.gz https://github.com/terraform-docs/terraform-docs/releases/download/v0.17.0/terraform-docs-v0.17.0-${RUNNER_OS@L}-${RUNNER_ARCH@L}.tar.gz
+          os=$(echo "$RUNNER_OS" | tr '[:upper:]' '[:lower:]')
+          arch=$(echo "$RUNNER_ARCH" | tr '[:upper:]' '[:lower:]')
+          curl -Lo ./terraform-docs.tar.gz https://github.com/terraform-docs/terraform-docs/releases/download/v0.17.0/terraform-docs-v0.17.0-${os}-${arch}.tar.gz
           tar -xzf terraform-docs.tar.gz
           chmod +x terraform-docs
           mv terraform-docs /usr/local/bin/terraform-docs
