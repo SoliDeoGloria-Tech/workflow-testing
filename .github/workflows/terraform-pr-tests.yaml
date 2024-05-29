@@ -37,10 +37,8 @@ jobs:
           TFDOC_VERSION: v0.17.0
         run: |
           os=$(uname | tr '[:upper:]' '[:lower:]')
-          arch=$(uname -m)
-          url="https://github.com/terraform-docs/terraform-docs/releases/download/${TFDOC_VERSION}/terraform-docs-${TFDOC_VERSION}-${os}-${arch}.tar.gz"
-          echo $url
-          curl -Lo ./terraform-docs.tar.gz $url
+          arch=$(uname -m | sed 's/x86_64/amd64/')
+          curl -Lo ./terraform-docs.tar.gz "https://github.com/terraform-docs/terraform-docs/releases/download/${TFDOC_VERSION}/terraform-docs-${TFDOC_VERSION}-${os}-${arch}.tar.gz"
           tar -xzf terraform-docs.tar.gz
           chmod +x terraform-docs
           mv terraform-docs /usr/local/bin/terraform-docs
