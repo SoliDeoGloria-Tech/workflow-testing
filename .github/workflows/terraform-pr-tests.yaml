@@ -42,6 +42,7 @@ jobs:
           tar -xzf terraform-docs.tar.gz
           chmod +x terraform-docs
           mv terraform-docs /usr/local/bin/terraform-docs
+          rm -f terraform-docs.tar.gz
 
       # If we dont initialize Terraform, can end up with inconsistent provider versions
       - name: Setup Terraform
@@ -56,7 +57,9 @@ jobs:
         run: |
           pwd
           ls -la
-          terraform-docs .
+          which terraform-docs
+          /usr/local/bin/terraform-docs --version
+          /usr/local/bin/terraform-docs .
           git diff
           if [ $(git diff-index --quiet HEAD --) -ne 0 ]; then
             echo "::error::Uncommitted change(s) found!"
