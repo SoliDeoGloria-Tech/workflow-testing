@@ -54,9 +54,11 @@ jobs:
 
       - name: Generate Docs
         run: |
+          pwd
+          ls -la
           terraform-docs .
           git diff
-          if [ $(git update-index --refresh && git diff-index --quiet HEAD --) -ne 0 ]; then
+          if [ $(git diff-index --quiet HEAD --) -ne 0 ]; then
             echo "::error::Uncommitted change(s) found!"
             echo "### :x: Terraform Docs need to be updated" >> $GITHUB_STEP_SUMMARY
             echo "```diff" >> $GITHUB_STEP_SUMMARY
