@@ -56,10 +56,6 @@ jobs:
       - name: Generate Docs
         run: |
           set +e
-          pwd
-          ls -la
-          git-diff
-          which terraform-docs
           terraform-docs . --output-check
           status=$?
           if [ $status -ne 0 ]; then
