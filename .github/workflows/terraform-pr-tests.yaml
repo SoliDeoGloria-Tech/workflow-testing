@@ -34,12 +34,12 @@ jobs:
 
       - name: Install terraform-docs
         env:
-          TFDOC_VERSION: v0.17.0
+          TFDOCS_VERSION: ${{ vars.terraform_version || 'v0.17.0' }}
         working-directory: ${{ runner.temp }}
         run: |
           os=$(uname | tr '[:upper:]' '[:lower:]')
           arch=$(uname -m | sed 's/x86_64/amd64/')
-          curl -Lo ./terraform-docs.tar.gz "https://github.com/terraform-docs/terraform-docs/releases/download/${TFDOC_VERSION}/terraform-docs-${TFDOC_VERSION}-${os}-${arch}.tar.gz"
+          curl -Lo ./terraform-docs.tar.gz "https://github.com/terraform-docs/terraform-docs/releases/download/${TFDOCS_VERSION}/terraform-docs-${TFDOCS_VERSION}-${os}-${arch}.tar.gz"
           tar -xzf terraform-docs.tar.gz
           chmod +x terraform-docs
           mv terraform-docs /usr/local/bin/terraform-docs
