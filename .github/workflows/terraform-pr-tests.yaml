@@ -54,7 +54,7 @@ jobs:
         run: terraform init -backend=false
 
       - name: Generate Docs
-        shell: bash --noprofile --norc +e -o pipefail {0}
+        shell: bash --noprofile --norc +e {0}
         run: |
           terraform-docs . --output-check
           status=$?
