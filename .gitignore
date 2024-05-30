@@ -297,10 +297,5 @@ override.tf.json
 .terraformrc
 terraform.rc
 
-**/backend.tf
-terraform/*/backend.tf
-backend.tf
-
 **/.state/
 .state/
-
