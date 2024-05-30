@@ -181,7 +181,7 @@ jobs:
           persist-credentials: true
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2 # v3 uses NodeJS 20
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ vars.terraform_version || 'latest' }}
 
