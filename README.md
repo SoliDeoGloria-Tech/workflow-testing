@@ -1,21 +1,18 @@
 <!-- BEGIN_TF_DOCS -->
+
 ## Requirements
 
 The following requirements are needed by this module:
 
-- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.5)
+- <a name="requirement_terraform"></a> [terraform](#requirement_terraform) (>= 1.5)
 
-- <a name="requirement_random"></a> [random](#requirement\_random) (~> 3.0)
+- <a name="requirement_random"></a> [random](#requirement_random) (~> 3.0)
 
 ## Providers
 
 The following providers are used by this module:
 
-- <a name="provider_random"></a> [random](#provider\_random) (3.6.2)
-
-## Modules
-
-No modules.
+- <a name="provider_random"></a> [random](#provider_random) (3.6.2)
 
 ## Resources
 
@@ -35,7 +32,8 @@ No optional inputs.
 
 The following outputs are exported:
 
-### <a name="output_pet"></a> [pet](#output\_pet)
+### <a name="output_pet"></a> [pet](#output_pet)
 
 Description: n/a
+
 <!-- END_TF_DOCS -->
