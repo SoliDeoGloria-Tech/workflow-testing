@@ -174,12 +174,22 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
           persist-credentials: true
 
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          allow-no-subscriptions: true
+
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: ${{ vars.terraform_version || 'latest' }}
 
       - name: Inititialize Terraform
+        env:
+          ARM_USE_OIDC: true
         run: terraform init
 
       - name: Terraform Plan
@@ -194,6 +204,16 @@ jobs:
             exit $status
           fi
           echo "### :white_check_mark: Terraform Plan successful" >> $GITHUB_STEP_SUMMARY
+
+      - name: Store Plan
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az blob upload --account-name ${{ secrets.AZURE_STORAGE_ACCOUNT }} \
+                           --account-key ${{ secrets.AZURE_STORAGE_KEY }} \
+                           --container-name ${{ secrets.AZURE_STORAGE_CONTAINER }} \
+                           --file tfplan \
+                           --name tfplan
 
       - name: Terraform Show
         id: show
