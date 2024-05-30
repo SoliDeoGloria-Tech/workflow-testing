@@ -20,6 +20,9 @@ defaults:
     shell: bash
     # working-directory: .
 
+env:
+  TF_IN_AUTOMATION: true
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -43,15 +46,6 @@ jobs:
           tar -xzf terraform-docs.tar.gz
           chmod +x terraform-docs
           mv terraform-docs /usr/local/bin/terraform-docs
-
-      # If we dont initialize Terraform, can end up with inconsistent provider versions
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2 # v3 uses NodeJS 20
-        with:
-          terraform_version: ${{ vars.terraform_version || 'latest' }}
-
-      - name: Inititialize Terraform
-        run: terraform init -backend=false
 
       - name: Generate Docs
         shell: bash --noprofile --norc +e -o pipefail {0}
@@ -155,10 +149,10 @@ jobs:
           terraform validate -no-color
           status=$?
           if [ $status -ne 0 ]; then
-            echo "### :x: Terraform Linting failed" >> $GITHUB_STEP_SUMMARY
+            echo "### :x: Terraform Validation failed" >> $GITHUB_STEP_SUMMARY
             exit $status
           fi
-          echo "### :white_check_mark: Terraform Linting successful" >> $GITHUB_STEP_SUMMARY
+          echo "### :white_check_mark: Terraform Validation successful" >> $GITHUB_STEP_SUMMARY
 
   plan:
     name: Change Plan
