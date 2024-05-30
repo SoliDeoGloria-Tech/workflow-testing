@@ -54,7 +54,7 @@ jobs:
         run: terraform init -backend=false
 
       - name: Generate Docs
-        shell: bash --noprofile --norc +e {0}
+        shell: bash --noprofile --norc +e -o pipefail {0}
         run: |
           terraform-docs . --output-check
           status=$?
@@ -75,8 +75,8 @@ jobs:
         uses: hashicorp/setup-terraform@v2 # v3 uses NodeJS 20
 
       - name: Terraform Format
+        shell: bash --noprofile --norc +e -o pipefail {0}
         run: |
-          set +e
           terraform fmt -check -recursive
           status=$?
           if [ $status -ne 0 ]; then
@@ -113,8 +113,8 @@ jobs:
         run: tflint --init
 
       - name: Run tflint
+        shell: bash --noprofile --norc +e -o pipefail {0}
         run: |
-          set +e
           tflint --format compact --no-color --recursive
           status=$?
           if [ $status -ne 0 ]; then
@@ -150,8 +150,8 @@ jobs:
 
       - name: Terraform Validate
         id: validate
+        shell: bash --noprofile --norc +e -o pipefail {0}
         run: |
-          set +e
           terraform validate -no-color
           status=$?
           if [ $status -ne 0 ]; then
@@ -191,8 +191,8 @@ jobs:
       - name: Terraform Plan
         id: plan
         continue-on-error: true
+        shell: bash --noprofile --norc +e -o pipefail {0}
         run: |
-          set +e
           terraform plan -no-color -out=tfplan
           status=$?
           if [ $status -ne 0 ]; then
