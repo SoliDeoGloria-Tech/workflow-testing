@@ -179,14 +179,6 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
           persist-credentials: true
 
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ vars.AZURE_CLIENT_ID }}
-          tenant-id: ${{ vars.AZURE_TENANT_ID }}
-          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-          allow-no-subscriptions: true
-
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -204,15 +196,29 @@ jobs:
         id: plan
         shell: bash --noprofile --norc +e -o pipefail {0}
         run: |
-          terraform plan -no-color -out=tfplan
+          terraform plan -detailed-exitcode -no-color -out=tfplan
           status=$?
-          if [ $status -ne 0 ]; then
-            echo "### :x: Terraform Plan failed" >> $GITHUB_STEP_SUMMARY
-            exit $status
-          fi
-          echo "### :white_check_mark: Terraform Plan successful" >> $GITHUB_STEP_SUMMARY
+          case status in
+            0)
+              echo "### :white_check_mark: Terraform Plan no changes" >> $GITHUB_STEP_SUMMARY
+              ;;
+            1)
+              echo "### :x: Terraform Plan failed" >> $GITHUB_STEP_SUMMARY
+              exit $status
+              ;;
+            2)
+              echo "### :white_check_mark: Terraform Plan changes detected" >> $GITHUB_STEP_SUMMARY
+              ;;
+          esac
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: Store Plan
+        id: store
+        if: steps.plan.outputs.status == 2
         uses: azure/cli@v2
         with:
           inlineScript: |
@@ -225,6 +231,7 @@ jobs:
 
       - name: Terraform Show
         id: show
+        if: contains(fromJSON('[0,2]'), steps.plan.outputs.status)
         run: terraform show -no-color tfplan
 
       - name: Post Plan as Comment
@@ -245,7 +252,7 @@ jobs:
             // 2. Prepare format of the comment
             const output = `#### Terraform Plan
             \`\`\`\n
-            ${{ steps.show.outputs.stdout }}
+            ${{ steps.show.outputs.stdout}}
             \`\`\`
             `;
 
