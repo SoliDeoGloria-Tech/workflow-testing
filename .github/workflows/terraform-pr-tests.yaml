@@ -211,13 +211,15 @@ jobs:
 
       - name: Store Plan
         uses: azure/cli@v2
+        if: ${{ steps.plan.outcome == 'success' }}
         with:
           inlineScript: |
-            az blob upload --account-name ${{ secrets.AZURE_STORAGE_ACCOUNT }} \
-                           --account-key ${{ secrets.AZURE_STORAGE_KEY }} \
-                           --container-name ${{ secrets.AZURE_STORAGE_CONTAINER }} \
-                           --file tfplan \
-                           --name tfplan
+            storage_account=$(cat backend.tf | grep storage_account_name | awk -F'"|"' '{print $2}')
+            container_name=$(cat backend.tf | grep container_name | awk -F'"|"' '{print $2}')
+            tar cvzf ${{ runner.temp }}/tfplan-${{ github.event.number }}.tar.gz .
+            az blob upload --account-name ${storage_account} \
+                           --container-name ${container_name} \
+                           --file ${{ runner.temp }}/tfplan-${{ github.event.number }}.tar.gz
 
       - name: Terraform Show
         id: show
