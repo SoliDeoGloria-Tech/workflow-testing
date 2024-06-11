@@ -44,10 +44,10 @@ jobs:
           terraform fmt -check -recursive
           status=$?
           if [ $status -ne 0 ]; then
-            echo "### :x: Terraform Formatting need to be updated" >> $GITHUB_STEP_SUMMARY
+            echo "### :x: Formatting need to be updated" >> $GITHUB_STEP_SUMMARY
             exit $status
           fi
-          echo "### :white_check_mark: Terraform Formatting is correct" >> $GITHUB_STEP_SUMMARY
+          echo "### :white_check_mark: Formatting is correct" >> $GITHUB_STEP_SUMMARY
 
   lint:
     name: Linting
@@ -82,10 +82,10 @@ jobs:
           tflint --format compact --no-color --recursive
           status=$?
           if [ $status -ne 0 ]; then
-            echo "### :x: Terraform Linting failed" >> $GITHUB_STEP_SUMMARY
+            echo "### :x: Linting failed" >> $GITHUB_STEP_SUMMARY
             exit $status
           fi
-          echo "### :white_check_mark: Terraform Linting successful" >> $GITHUB_STEP_SUMMARY
+          echo "### :white_check_mark: Linting successful" >> $GITHUB_STEP_SUMMARY
 
   validate:
     name: Validation
@@ -119,10 +119,10 @@ jobs:
           terraform validate -no-color
           status=$?
           if [ $status -ne 0 ]; then
-            echo "### :x: Terraform Validation failed" >> $GITHUB_STEP_SUMMARY
+            echo "### :x: Validation failed" >> $GITHUB_STEP_SUMMARY
             exit $status
           fi
-          echo "### :white_check_mark: Terraform Validation successful" >> $GITHUB_STEP_SUMMARY
+          echo "### :white_check_mark: Validation successful" >> $GITHUB_STEP_SUMMARY
 
   docs:
     name: Documentation
@@ -153,10 +153,10 @@ jobs:
           ~/.local/bin/terraform-docs . --output-check
           status=$?
           if [ $status -ne 0 ]; then
-            echo "### :x: Terraform Docs need to be updated" >> $GITHUB_STEP_SUMMARY
+            echo "### :x: Documentation need to be updated" >> $GITHUB_STEP_SUMMARY
             exit $status
           fi
-          echo "### :white_check_mark: Terraform Docs up to date" >> $GITHUB_STEP_SUMMARY
+          echo "### :white_check_mark: Documentation up to date" >> $GITHUB_STEP_SUMMARY
 
   plan:
     name: Change Plan
@@ -202,29 +202,32 @@ jobs:
           ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: Update Summary
+        id: summary
         run: |
           case ${{ steps.plan.outputs.exitcode }} in
             0)
-              echo "### :white_check_mark: Terraform Plan no changes" >> $GITHUB_STEP_SUMMARY
+              echo "### :white_check_mark: No changes" >> $GITHUB_STEP_SUMMARY
+              echo "plan=No Changes" >> $GITHUB_OUTPUT
               ;;
             2)
-              echo "### :white_check_mark: Terraform Plan changes detected" >> $GITHUB_STEP_SUMMARY
+              echo "### :white_check_mark: Changes required" >> $GITHUB_STEP_SUMMARY
+              echo "```\n" >> $GITHUB_STEP_SUMMARY
               terraform show -no-color tfplan >> $GITHUB_STEP_SUMMARY
+              echo "```\n" >> $GITHUB_STEP_SUMMARY
+              echo "plan=$(terraform show -no-color tfplan)" >> $GITHUB_OUTPUT
               ;;
           esac
 
       - name: Store Plan
         id: store
         if: steps.plan.outputs.exitcode == 2
-        uses: azure/cli@v2
-        with:
-          inlineScript: |
-            storage_account=$(cat backend.tf | grep storage_account_name | awk -F'"|"' '{print $2}')
-            container_name=$(cat backend.tf | grep container_name | awk -F'"|"' '{print $2}')
-            tar cvzf ${{ runner.temp }}/tfplan-${{ github.event.number }}.tar.gz .
-            az blob upload --account-name ${storage_account} \
-                           --container-name ${container_name} \
-                           --file ${{ runner.temp }}/tfplan-${{ github.event.number }}.tar.gz
+        run: |
+          storage_account=$(cat backend.tf | grep storage_account_name | awk -F'"|"' '{print $2}')
+          container_name=$(cat backend.tf | grep container_name | awk -F'"|"' '{print $2}')
+          tar cvzf ${{ runner.temp }}/tfplan-${{ github.event.number }}.tar.gz .
+          az blob upload --account-name ${storage_account} \
+                          --container-name ${container_name} \
+                          --file ${{ runner.temp }}/tfplan-${{ github.event.number }}.tar.gz
 
       - name: Post Plan as Comment
         uses: actions/github-script@v7
@@ -242,9 +245,19 @@ jobs:
             })
 
             // 2. Prepare format of the comment
-            const output = `#### Terraform Plan
-            \`\`\`\n
-            ${{ steps.plan.outputs.stdout}}
+            header = `#### Terraform Plan`
+            planOutput = `${{ steps.summary.outputs.plan}}`
+            if len(planOutput) > 64000 {
+              header.concat(
+                '\n',
+                'Plan output too long for a comment. ',
+                'Please check the [run summary][${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}] for the full plan. ',
+                'A truncated version is included below.')
+              planOutput = planOutput[:64000]
+            }
+            const output = `${header}
+            \`\`\`
+            ${planOutput}
             \`\`\`
             `;
 
