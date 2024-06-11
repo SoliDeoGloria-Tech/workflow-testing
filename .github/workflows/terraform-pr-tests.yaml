@@ -28,37 +28,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  docs:
-    name: Documentation
-    runs-on: [self-hosted, linux]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install terraform-docs
-        env:
-          TFDOCS_VERSION: ${{ vars.terraform_version || 'v0.17.0' }}
-        working-directory: ${{ runner.temp }}
-        run: |
-          os=$(uname | tr '[:upper:]' '[:lower:]')
-          arch=$(uname -m | sed 's/x86_64/amd64/')
-          curl -Lo ./terraform-docs.tar.gz "https://github.com/terraform-docs/terraform-docs/releases/download/${TFDOCS_VERSION}/terraform-docs-${TFDOCS_VERSION}-${os}-${arch}.tar.gz"
-          tar -xzf terraform-docs.tar.gz
-          chmod +x terraform-docs
-          mkdir -p ~/.local/bin
-          mv terraform-docs ~/.local/bin/terraform-docs
-
-      - name: Generate Docs
-        shell: bash --noprofile --norc +e -o pipefail {0}
-        run: |
-          ~/.local/bin/terraform-docs . --output-check
-          status=$?
-          if [ $status -ne 0 ]; then
-            echo "### :x: Terraform Docs need to be updated" >> $GITHUB_STEP_SUMMARY
-            exit $status
-          fi
-          echo "### :white_check_mark: Terraform Docs up to date" >> $GITHUB_STEP_SUMMARY
-
   format:
     name: Formatting
     runs-on: [self-hosted, linux]
@@ -155,10 +124,45 @@ jobs:
           fi
           echo "### :white_check_mark: Terraform Validation successful" >> $GITHUB_STEP_SUMMARY
 
+  docs:
+    name: Documentation
+    runs-on: [self-hosted, linux]
+    needs:
+      - lint
+      - validate
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install terraform-docs
+        env:
+          TFDOCS_VERSION: ${{ vars.terraform_version || 'v0.17.0' }}
+        working-directory: ${{ runner.temp }}
+        run: |
+          os=$(uname | tr '[:upper:]' '[:lower:]')
+          arch=$(uname -m | sed 's/x86_64/amd64/')
+          curl -Lo ./terraform-docs.tar.gz "https://github.com/terraform-docs/terraform-docs/releases/download/${TFDOCS_VERSION}/terraform-docs-${TFDOCS_VERSION}-${os}-${arch}.tar.gz"
+          tar -xzf terraform-docs.tar.gz
+          chmod +x terraform-docs
+          mkdir -p ~/.local/bin
+          mv terraform-docs ~/.local/bin/terraform-docs
+
+      - name: Generate Docs
+        shell: bash --noprofile --norc +e -o pipefail {0}
+        run: |
+          ~/.local/bin/terraform-docs . --output-check
+          status=$?
+          if [ $status -ne 0 ]; then
+            echo "### :x: Terraform Docs need to be updated" >> $GITHUB_STEP_SUMMARY
+            exit $status
+          fi
+          echo "### :white_check_mark: Terraform Docs up to date" >> $GITHUB_STEP_SUMMARY
+
   plan:
     name: Change Plan
     needs:
       - format
+      - lint
       - validate
     runs-on: [self-hosted, linux]
     steps:
