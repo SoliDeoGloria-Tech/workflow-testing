@@ -233,7 +233,7 @@ jobs:
 
             // 2. Prepare format of the comment
             header = `#### Terraform Plan`
-            if ${{ steps.plan.outputs.exitcode}} == 2 {
+            if (${{ steps.plan.outputs.exitcode}} == 2) {
               planOutput = `${{ steps.plan.outputs.stdout}}`
               if len(planOutput) > 64000 {
                 header.concat(
