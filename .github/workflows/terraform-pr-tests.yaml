@@ -194,31 +194,28 @@ jobs:
 
       - name: Terraform Plan
         id: plan
-        shell: bash --noprofile --norc +e -o pipefail {0}
-        run: |
-          terraform plan -detailed-exitcode -no-color -out=tfplan
-          status=$?
-          case status in
-            0)
-              echo "### :white_check_mark: Terraform Plan no changes" >> $GITHUB_STEP_SUMMARY
-              ;;
-            1)
-              echo "### :x: Terraform Plan failed" >> $GITHUB_STEP_SUMMARY
-              exit $status
-              ;;
-            2)
-              echo "### :white_check_mark: Terraform Plan changes detected" >> $GITHUB_STEP_SUMMARY
-              ;;
-          esac
+        run: terraform plan -detailed-exitcode -no-color -out=tfplan
         env:
           ARM_USE_OIDC: true
           ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
           ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Update Summary
+        run: |
+          case ${{ steps.plan.outputs.exitcode }} in
+            0)
+              echo "### :white_check_mark: Terraform Plan no changes" >> $GITHUB_STEP_SUMMARY
+              ;;
+            2)
+              echo "### :white_check_mark: Terraform Plan changes detected" >> $GITHUB_STEP_SUMMARY
+              terraform show -no-color tfplan >> $GITHUB_STEP_SUMMARY
+              ;;
+          esac
+
       - name: Store Plan
         id: store
-        if: steps.plan.outputs.status == 2
+        if: steps.plan.outputs.exitcode == 2
         uses: azure/cli@v2
         with:
           inlineScript: |
@@ -228,11 +225,6 @@ jobs:
             az blob upload --account-name ${storage_account} \
                            --container-name ${container_name} \
                            --file ${{ runner.temp }}/tfplan-${{ github.event.number }}.tar.gz
-
-      - name: Terraform Show
-        id: show
-        if: contains(fromJSON('[0,2]'), steps.plan.outputs.status)
-        run: terraform show -no-color tfplan
 
       - name: Post Plan as Comment
         uses: actions/github-script@v7
@@ -252,7 +244,7 @@ jobs:
             // 2. Prepare format of the comment
             const output = `#### Terraform Plan
             \`\`\`\n
-            ${{ steps.show.outputs.stdout}}
+            ${{ steps.plan.outputs.stdout}}
             \`\`\`
             `;
 
