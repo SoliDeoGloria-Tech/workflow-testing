@@ -206,15 +206,11 @@ jobs:
         run: |
           case ${{ steps.plan.outputs.exitcode }} in
             0)
-              echo "### :white_check_mark: No changes" >> $GITHUB_STEP_SUMMARY
-              echo "plan=No Changes" >> $GITHUB_OUTPUT
+              printf '### :white_check_mark: No changes' >> $GITHUB_STEP_SUMMARY
               ;;
             2)
-              echo "### :white_check_mark: Changes required" >> $GITHUB_STEP_SUMMARY
-              echo "```\n" >> $GITHUB_STEP_SUMMARY
-              terraform show -no-color tfplan >> $GITHUB_STEP_SUMMARY
-              echo "```\n" >> $GITHUB_STEP_SUMMARY
-              echo "plan=$(terraform show -no-color tfplan)" >> $GITHUB_OUTPUT
+              printf '### :white_check_mark: Changes required' >> $GITHUB_STEP_SUMMARY
+              printf '```\n${{ steps.plan.outputs.stdout }}\n```' >> $GITHUB_STEP_SUMMARY
               ;;
           esac
 
@@ -222,12 +218,15 @@ jobs:
         id: store
         if: steps.plan.outputs.exitcode == 2
         run: |
+          # Extract the storage account from the Terraform backend configuration
           storage_account=$(cat backend.tf | grep storage_account_name | awk -F'"|"' '{print $2}')
           container_name=$(cat backend.tf | grep container_name | awk -F'"|"' '{print $2}')
+
+          # Tar the plan and upload to the state storage account
           tar cvzf ${{ runner.temp }}/tfplan-${{ github.event.number }}.tar.gz .
           az blob upload --account-name ${storage_account} \
-                          --container-name ${container_name} \
-                          --file ${{ runner.temp }}/tfplan-${{ github.event.number }}.tar.gz
+                         --container-name ${container_name} \
+                         --file ${{ runner.temp }}/tfplan-${{ github.event.number }}.tar.gz
 
       - name: Post Plan as Comment
         uses: actions/github-script@v7
@@ -246,14 +245,18 @@ jobs:
 
             // 2. Prepare format of the comment
             header = `#### Terraform Plan`
-            planOutput = `${{ steps.summary.outputs.plan}}`
-            if len(planOutput) > 64000 {
-              header.concat(
-                '\n',
-                'Plan output too long for a comment. ',
-                'Please check the [run summary][${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}] for the full plan. ',
-                'A truncated version is included below.')
-              planOutput = planOutput[:64000]
+            if ${{ steps.plan.outputs.exitcode}} == 2 {
+              planOutput = `${{ steps.plan.outputs.stdout}}`
+              if len(planOutput) > 64000 {
+                header.concat(
+                  '\n',
+                  'Plan output too long for a comment. ',
+                  'Please check the [run summary][${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}] for the full plan. ',
+                  'A truncated version is included below.')
+                planOutput = planOutput[:64000]
+              }
+            } else {
+              planOutput = 'No changes'
             }
             const output = `${header}
             \`\`\`
