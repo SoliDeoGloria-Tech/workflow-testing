@@ -45,12 +45,13 @@ jobs:
           curl -Lo ./terraform-docs.tar.gz "https://github.com/terraform-docs/terraform-docs/releases/download/${TFDOCS_VERSION}/terraform-docs-${TFDOCS_VERSION}-${os}-${arch}.tar.gz"
           tar -xzf terraform-docs.tar.gz
           chmod +x terraform-docs
-          mv terraform-docs /usr/local/bin/terraform-docs
+          mkdir -p ~/.local/bin
+          mv terraform-docs ~/.local/bin/terraform-docs
 
       - name: Generate Docs
         shell: bash --noprofile --norc +e -o pipefail {0}
         run: |
-          terraform-docs . --output-check
+          ~/.local/bin/terraform-docs . --output-check
           status=$?
           if [ $status -ne 0 ]; then
             echo "### :x: Terraform Docs need to be updated" >> $GITHUB_STEP_SUMMARY
