@@ -1,0 +1,29 @@
+on:
+  workflow_call:
+    inputs:
+      terraform_version:
+        description: "Terraform version to use"
+        type: string
+        required: false
+        default: "latest"
+
+jobs:
+  format:
+    name: Formatting
+    runs-on: [self-hosted, linux]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ inputs.terraform_version }}
+
+      - name: Terraform Format
+        run: terraform fmt
+
+      - name: Post Suggested Changes
+        uses: parkerbxyz/suggest-changes@v1
+        with:
+          comment: Please correct the Terraform formatting

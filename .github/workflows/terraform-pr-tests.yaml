@@ -30,43 +30,10 @@ concurrency:
 
 jobs:
   format:
-    name: Formatting
-    runs-on: [self-hosted, linux]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ vars.terraform_version || 'latest' }}
-          terraform_wrapper: false
-
-      - name: Terraform Format
-        shell: bash --noprofile --norc +e -o pipefail {0}
-        run: |
-          fmt=$(terraform fmt -check -recursive)
-          status=$?
-          case $status in
-            0)
-              printf '### :white_check_mark: Formatting is correct' >> $GITHUB_STEP_SUMMARY
-              ;;
-            3)
-              for file in $fmt; do
-                printf '::error title=Incorrect formatting,file=%s::File is not correctly formatted\n' $file
-              done
-              printf '### :x: Formatting need to be updated\n' >> $GITHUB_STEP_SUMMARY
-              printf 'The following files need to be formatted:\n' >> $GITHUB_STEP_SUMMARY
-              printf '```\n' >> $GITHUB_STEP_SUMMARY
-              printf '%s\n' "$fmt" >> $GITHUB_STEP_SUMMARY
-              printf '```\n' >> $GITHUB_STEP_SUMMARY
-              printf 'Please run `terraform fmt` to fix the formatting\n' >> $GITHUB_STEP_SUMMARY
-              ;;
-            *)
-              printf "### :x: An error occurred while checking formatting" >> $GITHUB_STEP_SUMMARY
-              ;;
-            esac
-            exit $status
+    uses: ./.github/workflows/terraform-format-report.yaml
+    with:
+      runs_on: "['self-hosted', 'linux']"
+      terraform_version: latest
 
   lint:
     name: Linting
@@ -173,7 +140,8 @@ jobs:
               icon=':$(_jq '.severity'):'
             fi
             printf '#### %s: %s\n' $icon "$(_jq '.summary')" >> $GITHUB_STEP_SUMMARY
-            printf '`%s` `%s`\n' "$(_jq '.range.filename')" "$(_jq '.snippet.context')" >> $GITHUB_STEP_SUMMARY
+            printf '`%sL%d`\n' "$(_jq '.range.filename')" "$(_jq '.range.start.line')" >> $GITHUB_STEP_SUMMARY
+            printf '`%s`\n' "$(_jq '.snippet.context')" >> $GITHUB_STEP_SUMMARY
             printf '%s\n' "$(_jq '.detail')" >> $GITHUB_STEP_SUMMARY
           done
           exit 1

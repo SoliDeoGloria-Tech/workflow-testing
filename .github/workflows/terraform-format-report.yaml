@@ -1,0 +1,52 @@
+on:
+  workflow_call:
+    inputs:
+      terraform_version:
+        description: "Terraform version to use"
+        type: string
+        required: false
+        default: "latest"
+      runs_on:
+        description: "Runner to use"
+        type: string
+        required: true
+
+jobs:
+  format:
+    name: Formatting
+    runs-on: ${{ fromJson(inputs.runs_on) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ inputs.terraform_version }}
+          terraform_wrapper: false
+
+      - name: Terraform Format
+        shell: bash --noprofile --norc +e -o pipefail {0}
+        run: |
+          fmt=$(terraform fmt -check -recursive)
+          status=$?
+          case $status in
+            0)
+              printf '### :white_check_mark: Formatting is correct' >> $GITHUB_STEP_SUMMARY
+              ;;
+            3)
+              for file in $fmt; do
+                printf '::error title=Incorrect formatting,file=%s::File is not correctly formatted\n' $file
+              done
+              printf '### :x: Formatting need to be updated\n' >> $GITHUB_STEP_SUMMARY
+              printf 'The following files need to be formatted:\n' >> $GITHUB_STEP_SUMMARY
+              printf '```\n' >> $GITHUB_STEP_SUMMARY
+              printf '%s\n' "$fmt" >> $GITHUB_STEP_SUMMARY
+              printf '```\n' >> $GITHUB_STEP_SUMMARY
+              printf 'Please run `terraform fmt` to fix the formatting\n' >> $GITHUB_STEP_SUMMARY
+              ;;
+            *)
+              printf "### :x: An error occurred while checking formatting" >> $GITHUB_STEP_SUMMARY
+              ;;
+            esac
+            exit $status
