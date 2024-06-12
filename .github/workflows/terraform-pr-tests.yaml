@@ -120,7 +120,7 @@ jobs:
         shell: bash --noprofile --norc +e -o pipefail {0}
         run: |
           validation=$(terraform validate -json)
-          if [ (jq -r '.valid' <<< ${validation}) ]; then
+          if [[ $(jq -r '.valid' <<< ${validation}) ]]; then
             printf '### :white_check_mark: Validation successful' >> $GITHUB_STEP_SUMMARY
             exit 0
           fi
