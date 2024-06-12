@@ -38,6 +38,9 @@ jobs:
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ vars.terraform_version || 'latest' }}
+          terraform_wrapper: false
 
       - name: Terraform Format
         shell: bash --noprofile --norc +e -o pipefail {0}
@@ -127,6 +130,7 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ vars.terraform_version || 'latest' }}
+          terraform_wrapper: false
 
       - name: Inititialize Terraform
         run: terraform init -backend=false
@@ -171,9 +175,10 @@ jobs:
               icon=':$(_jq '.severity'):'
             fi
             printf '#### %s: %s\n' $icon "$(_jq '.summary')" >> $GITHUB_STEP_SUMMARY
-            printf '`%s` `%s`\n' "$(_jq '.filename')" "$(_jq '.snippet.context')" >> $GITHUB_STEP_SUMMARY
+            printf '`%s` `%s`\n' "$(_jq '.range.filename')" "$(_jq '.snippet.context')" >> $GITHUB_STEP_SUMMARY
             printf '%s\n' "$(_jq '.detail')" >> $GITHUB_STEP_SUMMARY
           done
+          exit 1
 
   docs:
     name: Documentation
