@@ -5,12 +5,16 @@ on:
         description: "Terraform version to use"
         type: string
         required: false
-        default: "latest"
+        default: latest
+      runs-on:
+        description: "Runner to use"
+        type: string
+        required: true
 
 jobs:
   format:
     name: Formatting
-    runs-on: [self-hosted, linux]
+    runs-on: ${{ fromJson(inputs.runs_on) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

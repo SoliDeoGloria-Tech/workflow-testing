@@ -30,9 +30,10 @@ concurrency:
 
 jobs:
   format:
-    uses: ./.github/workflows/terraform-format-report.yaml
+    name: Formatting
+    uses: ./.github/workflows/terraform-format-suggest-fix.yaml
     with:
-      runs_on: "['self-hosted', 'linux']"
+      runs-on: "['self-hosted', 'linux']"
       terraform_version: latest
 
   lint:

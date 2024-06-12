@@ -5,15 +5,15 @@ on:
         description: "Terraform version to use"
         type: string
         required: false
-        default: "latest"
-      runs_on:
+        default: latest
+      runs-on:
         description: "Runner to use"
         type: string
         required: true
 
 jobs:
   format:
-    name: Formatting
+    name: Check Formatting
     runs-on: ${{ fromJson(inputs.runs_on) }}
     steps:
       - name: Checkout
