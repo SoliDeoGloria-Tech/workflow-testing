@@ -128,10 +128,10 @@ jobs:
           error_count=$(jq -r '.error_count' <<< ${validation})
           warning_count=$(jq -r '.warning_count' <<< ${validation})
           if [[ $error_count -gt 0 ]]; then
-            printf '### :x: Found %d errors\n' $error_count >> $GITHUB_STEP_SUMMARY
+            printf ':x: Found %d errors\n' $error_count >> $GITHUB_STEP_SUMMARY
           fi
           if [[ $warning_count -gt 0 ]]; then
-            printf '### :warning: Found %d warnings\n' $warning_count >> $GITHUB_STEP_SUMMARY
+            printf ':warning: Found %d warnings\n' $warning_count >> $GITHUB_STEP_SUMMARY
           fi
 
           # Loop through the results and provide actionable information
