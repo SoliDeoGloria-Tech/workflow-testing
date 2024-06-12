@@ -14,7 +14,7 @@ on:
 jobs:
   format:
     name: Formatting
-    runs-on: ${{ fromJson(inputs.runs_on) }}
+    runs-on: ${{ fromJson(inputs.runs-on) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
