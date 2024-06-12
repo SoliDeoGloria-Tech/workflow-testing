@@ -288,7 +288,7 @@ jobs:
           az storage blob upload --account-name ${storage_account} \
                                  --container-name ${container_name} \
                                  --file ${{ runner.temp }}/tfplan-${{ github.event.number }}.tar.gz \
-                                 --overwrite true --validate-content true
+                                 --overwrite true --validate-content
 
   infracost:
     name: Cost Estimation
@@ -324,7 +324,7 @@ jobs:
           az storage blob download --account-name ${storage_account} \
                                    --container-name ${container_name} \
                                    --file ${{ runner.temp }}/tfplan-${{ github.event.number }}.tar.gz \
-                                   --validate-content true
+                                   --validate-content
           tar xzf ${{ runner.temp }}/tfplan-${{ github.event.number }}.tar.gz .
 
       - name: Add Infracost Details as Comment
