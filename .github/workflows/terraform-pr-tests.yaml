@@ -21,6 +21,7 @@ defaults:
     # working-directory: .
 
 env:
+  AZURE_STORAGE_AUTH_MODE: login
   TF_IN_AUTOMATION: true
 
 concurrency:
@@ -286,7 +287,8 @@ jobs:
           tar czf ${{ runner.temp }}/tfplan-${{ github.event.number }}.tar.gz .
           az storage blob upload --account-name ${storage_account} \
                                  --container-name ${container_name} \
-                                 --file ${{ runner.temp }}/tfplan-${{ github.event.number }}.tar.gz
+                                 --file ${{ runner.temp }}/tfplan-${{ github.event.number }}.tar.gz \
+                                 --overwrite true --validate-content true
 
   infracost:
     name: Cost Estimation
@@ -304,6 +306,14 @@ jobs:
           api-key: ${{ secrets.INFRACOST_API_KEY }}
           currency: AUD
 
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          allow-no-subscriptions: true
+
       - name: Download Plan
         run: |
           # Extract the storage account from the Terraform backend configuration
@@ -313,7 +323,8 @@ jobs:
           # Download the plan and untar
           az storage blob download --account-name ${storage_account} \
                                    --container-name ${container_name} \
-                                   --file ${{ runner.temp }}/tfplan-${{ github.event.number }}.tar.gz
+                                   --file ${{ runner.temp }}/tfplan-${{ github.event.number }}.tar.gz \
+                                   --validate-content true
           tar xzf ${{ runner.temp }}/tfplan-${{ github.event.number }}.tar.gz .
 
       - name: Add Infracost Details as Comment
