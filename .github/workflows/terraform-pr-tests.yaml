@@ -61,13 +61,12 @@ jobs:
               printf '%s\n' "$fmt" >> $GITHUB_STEP_SUMMARY
               printf '```\n' >> $GITHUB_STEP_SUMMARY
               printf 'Please run `terraform fmt` to fix the formatting\n' >> $GITHUB_STEP_SUMMARY
-              exit 0
               ;;
             *)
               printf "### :x: An error occurred while checking formatting" >> $GITHUB_STEP_SUMMARY
-              exit $status
               ;;
-          esac
+            esac
+            exit $status
 
   lint:
     name: Linting
@@ -140,7 +139,6 @@ jobs:
         shell: bash --noprofile --norc +e -o pipefail {0}
         run: |
           validation=$(terraform validate -json)
-          printf '%s' "$validation"
           if [[ $(jq -r '.valid' <<< ${validation}) == 'true' ]]; then
             printf '### :white_check_mark: Validation successful' >> $GITHUB_STEP_SUMMARY
             exit 0
