@@ -226,31 +226,27 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-            })
+            });
             const botComment = comments.find(comment => {
-              return comment.user.type === 'Bot' && comment.body.includes('Terraform Plan')
-            })
+              return comment.user.type === 'Bot' && comment.body.includes('Terraform Plan');
+            });
 
             // 2. Prepare format of the comment
-            header = `#### Terraform Plan`
+            header = `#### Terraform Plan`;
             if (${{ steps.plan.outputs.exitcode}} == 2) {
               planOutput = `${{ steps.plan.outputs.stdout}}`
-              if len(planOutput) > 64000 {
+              if (planOutput.length > 64000) {
                 header.concat(
                   '\n',
                   'Plan output too long for a comment. ',
                   'Please check the [run summary][${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}] for the full plan. ',
-                  'A truncated version is included below.')
-                planOutput = planOutput[:64000]
+                  'A truncated version is included below.');
+                planOutput = planOutput[:64000];
               }
             } else {
-              planOutput = 'No changes'
+              planOutput = 'No changes';
             }
-            const output = `${header}
-            \`\`\`
-            ${planOutput}
-            \`\`\`
-            `;
+            const output = `${header}\n\`\`\`\n${planOutput}\n\`\`\`\n`;
 
             // 3. If we have a comment, update it, otherwise create a new one
             if (botComment) {
@@ -259,14 +255,14 @@ jobs:
                 repo: context.repo.repo,
                 comment_id: botComment.id,
                 body: output
-              })
+              });
             } else {
               github.rest.issues.createComment({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 body: output
-              })
+              });
             }
 
       - name: Azure Login
