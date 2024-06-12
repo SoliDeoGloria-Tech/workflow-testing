@@ -57,7 +57,8 @@ jobs:
       # The runner GITHUB_TOKEN only has permissions to its own repository
       # so we need a token from an app to allow Terraform to download modules
       # from other repositories in the org.
-      - uses: actions/create-github-app-token@v1
+      - name: Get Github App Token
+        uses: actions/create-github-app-token@v1
         id: app-token
         with:
           app-id: ${{ vars.CHECKOUT_APP_ID }}
@@ -92,7 +93,8 @@ jobs:
     name: Validation
     runs-on: [self-hosted, linux]
     steps:
-      - uses: actions/create-github-app-token@v1
+      - name: Get Github App Token
+        uses: actions/create-github-app-token@v1
         id: app-token
         with:
           app-id: ${{ vars.CHECKOUT_APP_ID }}
@@ -117,13 +119,39 @@ jobs:
         id: validate
         shell: bash --noprofile --norc +e -o pipefail {0}
         run: |
-          terraform validate -no-color
-          status=$?
-          if [ $status -ne 0 ]; then
-            echo "### :x: Validation failed" >> $GITHUB_STEP_SUMMARY
-            exit $status
+          validation=$(terraform validate -json)
+          if [ (jq -r '.valid' <<< ${validation}) ]; then
+            printf '### :white_check_mark: Validation successful' >> $GITHUB_STEP_SUMMARY
+            exit 0
           fi
-          echo "### :white_check_mark: Validation successful" >> $GITHUB_STEP_SUMMARY
+          printf '### :x: Validation failed\n' >> $GITHUB_STEP_SUMMARY
+          error_count=$(jq -r '.error_count' <<< ${validation})
+          warning_count=$(jq -r '.warning_count' <<< ${validation})
+          if [ $error_count -gt 0 ]; then
+            printf '### :x: Found %d errors\n' $error_count >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ $warning_count -gt 0]; then
+            printf '### :warning: Found %d warnings\n' $warning_count >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Loop through the results and provide actionable information
+          for issue in $(jq -r '.diagnostics[] | @base64' <<< ${validation}); do
+            _jq() {
+              echo ${issue} | base64 --decode | jq -r ${1}
+            }
+            printf '::%s file=%s,line=%d,col=%d,endLine=%d,endColumn=%d,title=%s::%s\n' \
+              "$(_jq '.severity')" \
+              "$(_jq '.range.filename')" \
+              "$(_jq '.range.start.line')" \
+              "$(_jq '.range.start.column')" \
+              "$(_jq '.range.end.line')" \
+              "$(_jq '.range.end.column')" \
+              "$(_jq '.snippet.context')" \
+              "$(_jq '.summary'): $(_jq '.message')"
+            printf '#### %s\n' "$(_jq '.summary')" >> $GITHUB_STEP_SUMMARY
+            printf '%s\n' "$(_jq '.detail')" >> $GITHUB_STEP_SUMMARY
+          done
+          exit 1
 
   docs:
     name: Documentation
@@ -169,7 +197,8 @@ jobs:
     outputs:
       changes_required: ${{ steps.plan.outputs.exitcode == 2 }}
     steps:
-      - uses: actions/create-github-app-token@v1
+      - name: Get Github App Token
+        uses: actions/create-github-app-token@v1
         id: app-token
         with:
           app-id: ${{ vars.CHECKOUT_APP_ID }}
