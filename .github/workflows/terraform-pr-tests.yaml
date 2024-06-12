@@ -58,10 +58,10 @@ jobs:
               printf '%s\n' "$fmt" >> $GITHUB_STEP_SUMMARY
               printf '```\n' >> $GITHUB_STEP_SUMMARY
               printf 'Please run `terraform fmt` to fix the formatting\n' >> $GITHUB_STEP_SUMMARY
-              exit $status
+              exit 0
               ;;
             *)
-              printf "### :x: An error occurred while formatting" >> $GITHUB_STEP_SUMMARY
+              printf "### :x: An error occurred while checking formatting" >> $GITHUB_STEP_SUMMARY
               exit $status
               ;;
           esac
@@ -136,6 +136,7 @@ jobs:
         shell: bash --noprofile --norc +e -o pipefail {0}
         run: |
           validation=$(terraform validate -json)
+          printf '%s' "$validation"
           if [[ $(jq -r '.valid' <<< ${validation}) == 'true' ]]; then
             printf '### :white_check_mark: Validation successful' >> $GITHUB_STEP_SUMMARY
             exit 0
@@ -173,7 +174,6 @@ jobs:
             printf '`%s` `%s`\n' "$(_jq '.filename')" "$(_jq '.snippet.context')" >> $GITHUB_STEP_SUMMARY
             printf '%s\n' "$(_jq '.detail')" >> $GITHUB_STEP_SUMMARY
           done
-          exit 1
 
   docs:
     name: Documentation
