@@ -50,13 +50,14 @@ jobs:
               ;;
             3)
               for file in $fmt; do
-                printf '::error file=%s::File is not correctly formatted\n' $file
+                printf '::error title=Incorrect formatting,file=%s::File is not correctly formatted\n' $file
               done
-              printf '### :x: Formatting need to be updated' >> $GITHUB_STEP_SUMMARY
+              printf '### :x: Formatting need to be updated\n' >> $GITHUB_STEP_SUMMARY
               printf 'The following files need to be formatted:\n' >> $GITHUB_STEP_SUMMARY
               printf '```\n' >> $GITHUB_STEP_SUMMARY
               printf '%s\n' "$fmt" >> $GITHUB_STEP_SUMMARY
               printf '```\n' >> $GITHUB_STEP_SUMMARY
+              printf 'Please run `terraform fmt` to fix the formatting\n' >> $GITHUB_STEP_SUMMARY
               exit $status
               ;;
             *)
@@ -64,11 +65,6 @@ jobs:
               exit $status
               ;;
           esac
-          if [[ $status -eq 0 ]]; then
-            printf "### :x: Formatting need to be updated" >> $GITHUB_STEP_SUMMARY
-            exit $status
-          fi
-          printf "### :white_check_mark: Formatting is correct" >> $GITHUB_STEP_SUMMARY
 
   lint:
     name: Linting
@@ -148,10 +144,10 @@ jobs:
           error_count=$(jq -r '.error_count' <<< ${validation})
           warning_count=$(jq -r '.warning_count' <<< ${validation})
           if [[ $error_count -gt 0 ]]; then
-            printf ':x: Found %d errors\n' $error_count >> $GITHUB_STEP_SUMMARY
+            printf 'Found %d errors\n' $error_count >> $GITHUB_STEP_SUMMARY
           fi
           if [[ $warning_count -gt 0 ]]; then
-            printf ':warning: Found %d warnings\n' $warning_count >> $GITHUB_STEP_SUMMARY
+            printf 'Found %d warnings\n' $warning_count >> $GITHUB_STEP_SUMMARY
           fi
 
           # Loop through the results and provide actionable information
@@ -159,16 +155,22 @@ jobs:
             _jq() {
               printf ${issue} | base64 --decode | jq -r ${1}
             }
-            printf '::%s file=%s,line=%d,col=%d,endLine=%d,endColumn=%d,title=%s::%s\n' \
+            printf '::%s title=%s,file=%s,line=%d,col=%d,endLine=%d,endColumn=%d::%s\n' \
               "$(_jq '.severity')" \
+              "$(_jq '.summary')" \
               "$(_jq '.range.filename')" \
               "$(_jq '.range.start.line')" \
               "$(_jq '.range.start.column')" \
               "$(_jq '.range.end.line')" \
               "$(_jq '.range.end.column')" \
-              "$(_jq '.summary')" \
               "$(_jq '.detail')"
-            printf '#### %s\n' "$(_jq '.summary')" >> $GITHUB_STEP_SUMMARY
+            if [[ $(_jq '.severity') == 'error' ]]; then
+              icon=':x:'
+            else
+              icon=':$(_jq '.severity'):'
+            fi
+            printf '#### %s: %s\n' $icon "$(_jq '.summary')" >> $GITHUB_STEP_SUMMARY
+            printf '`%s` `%s`\n' "$(_jq '.filename')" "$(_jq '.snippet.context')" >> $GITHUB_STEP_SUMMARY
             printf '%s\n' "$(_jq '.detail')" >> $GITHUB_STEP_SUMMARY
           done
           exit 1
