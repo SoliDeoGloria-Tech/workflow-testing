@@ -42,13 +42,33 @@ jobs:
       - name: Terraform Format
         shell: bash --noprofile --norc +e -o pipefail {0}
         run: |
-          terraform fmt -check -recursive
+          fmt=$(terraform fmt -check -recursive)
           status=$?
-          if [ $status -ne 0 ]; then
-            echo "### :x: Formatting need to be updated" >> $GITHUB_STEP_SUMMARY
+          case $status in
+            0)
+              printf '### :white_check_mark: Formatting is correct' >> $GITHUB_STEP_SUMMARY
+              ;;
+            3)
+              for file in $fmt; do
+                printf '::error file=%s::File is not correctly formatted\n' $file
+              done
+              printf '### :x: Formatting need to be updated' >> $GITHUB_STEP_SUMMARY
+              printf 'The following files need to be formatted:\n' >> $GITHUB_STEP_SUMMARY
+              printf '```\n' >> $GITHUB_STEP_SUMMARY
+              printf '%s\n' "$fmt" >> $GITHUB_STEP_SUMMARY
+              printf '```\n' >> $GITHUB_STEP_SUMMARY
+              exit $status
+              ;;
+            *)
+              printf "### :x: An error occurred while formatting" >> $GITHUB_STEP_SUMMARY
+              exit $status
+              ;;
+          esac
+          if [[ $status -eq 0 ]]; then
+            printf "### :x: Formatting need to be updated" >> $GITHUB_STEP_SUMMARY
             exit $status
           fi
-          echo "### :white_check_mark: Formatting is correct" >> $GITHUB_STEP_SUMMARY
+          printf "### :white_check_mark: Formatting is correct" >> $GITHUB_STEP_SUMMARY
 
   lint:
     name: Linting
@@ -84,10 +104,10 @@ jobs:
           tflint --format compact --no-color --recursive
           status=$?
           if [ $status -ne 0 ]; then
-            echo "### :x: Linting failed" >> $GITHUB_STEP_SUMMARY
+            printf "### :x: Linting failed" >> $GITHUB_STEP_SUMMARY
             exit $status
           fi
-          echo "### :white_check_mark: Linting successful" >> $GITHUB_STEP_SUMMARY
+          printf "### :white_check_mark: Linting successful" >> $GITHUB_STEP_SUMMARY
 
   validate:
     name: Validation
@@ -137,9 +157,9 @@ jobs:
           # Loop through the results and provide actionable information
           for issue in $(jq -r '.diagnostics[] | @base64' <<< ${validation}); do
             _jq() {
-              echo ${issue} | base64 --decode | jq -r ${1}
+              printf ${issue} | base64 --decode | jq -r ${1}
             }
-            printf '::%s file=%s,line=%d,col=%d,endLine=%d,endColumn=%d,title=%s::%s context: `%s` code:`%s`\n' \
+            printf '::%s file=%s,line=%d,col=%d,endLine=%d,endColumn=%d,title=%s::%s\n' \
               "$(_jq '.severity')" \
               "$(_jq '.range.filename')" \
               "$(_jq '.range.start.line')" \
@@ -147,9 +167,7 @@ jobs:
               "$(_jq '.range.end.line')" \
               "$(_jq '.range.end.column')" \
               "$(_jq '.summary')" \
-              "$(_jq '.detail')" \
-              "$(_jq '.snippet.context' | xargs)" \
-              "$(_jq '.snippet.code' | xargs)"
+              "$(_jq '.detail')"
             printf '#### %s\n' "$(_jq '.summary')" >> $GITHUB_STEP_SUMMARY
             printf '%s\n' "$(_jq '.detail')" >> $GITHUB_STEP_SUMMARY
           done
@@ -184,10 +202,10 @@ jobs:
           ~/.local/bin/terraform-docs . --output-check
           status=$?
           if [ $status -ne 0 ]; then
-            echo "### :x: Documentation need to be updated" >> $GITHUB_STEP_SUMMARY
+            printf "### :x: Documentation need to be updated" >> $GITHUB_STEP_SUMMARY
             exit $status
           fi
-          echo "### :white_check_mark: Documentation up to date" >> $GITHUB_STEP_SUMMARY
+          printf "### :white_check_mark: Documentation up to date" >> $GITHUB_STEP_SUMMARY
 
   plan:
     name: Change Plan
