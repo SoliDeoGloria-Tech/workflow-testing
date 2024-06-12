@@ -120,17 +120,17 @@ jobs:
         shell: bash --noprofile --norc +e -o pipefail {0}
         run: |
           validation=$(terraform validate -json)
-          if [[ $(jq -r '.valid' <<< ${validation}) ]]; then
+          if [[ $(jq -r '.valid' <<< ${validation}) == 'true' ]]; then
             printf '### :white_check_mark: Validation successful' >> $GITHUB_STEP_SUMMARY
             exit 0
           fi
           printf '### :x: Validation failed\n' >> $GITHUB_STEP_SUMMARY
           error_count=$(jq -r '.error_count' <<< ${validation})
           warning_count=$(jq -r '.warning_count' <<< ${validation})
-          if [ $error_count -gt 0 ]; then
+          if [[ $error_count -gt 0 ]]; then
             printf '### :x: Found %d errors\n' $error_count >> $GITHUB_STEP_SUMMARY
           fi
-          if [ $warning_count -gt 0]; then
+          if [[ $warning_count -gt 0 ]]; then
             printf '### :warning: Found %d warnings\n' $warning_count >> $GITHUB_STEP_SUMMARY
           fi
 
@@ -139,15 +139,17 @@ jobs:
             _jq() {
               echo ${issue} | base64 --decode | jq -r ${1}
             }
-            printf '::%s file=%s,line=%d,col=%d,endLine=%d,endColumn=%d,title=%s::%s\n' \
+            printf '::%s file=%s,line=%d,col=%d,endLine=%d,endColumn=%d,title=%s::%s context: `%s` code:`%s`\n' \
               "$(_jq '.severity')" \
               "$(_jq '.range.filename')" \
               "$(_jq '.range.start.line')" \
               "$(_jq '.range.start.column')" \
               "$(_jq '.range.end.line')" \
               "$(_jq '.range.end.column')" \
-              "$(_jq '.snippet.context')" \
-              "$(_jq '.summary'): $(_jq '.message')"
+              "$(_jq '.summary')" \
+              "$(_jq '.detail')" \
+              "$(_jq '.snippet.context' | xargs)" \
+              "$(_jq '.snippet.code' | xargs)"
             printf '#### %s\n' "$(_jq '.summary')" >> $GITHUB_STEP_SUMMARY
             printf '%s\n' "$(_jq '.detail')" >> $GITHUB_STEP_SUMMARY
           done
