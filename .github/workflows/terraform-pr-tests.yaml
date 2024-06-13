@@ -18,7 +18,6 @@ on:
 defaults:
   run:
     shell: bash
-    # working-directory: .
 
 env:
   AZURE_STORAGE_AUTH_MODE: login
@@ -34,7 +33,6 @@ jobs:
     uses: ./.github/workflows/terraform-format-suggest-fix.yaml
     with:
       runs-on: "['self-hosted', 'linux']"
-      terraform_version: latest
 
   lint:
     name: Linting
@@ -77,109 +75,22 @@ jobs:
 
   validate:
     name: Validation
-    runs-on: [self-hosted, linux]
-    steps:
-      - name: Get Github App Token
-        uses: actions/create-github-app-token@v1
-        id: app-token
-        with:
-          app-id: ${{ vars.CHECKOUT_APP_ID }}
-          private-key: ${{ secrets.CHECKOUT_APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          token: ${{ steps.app-token.outputs.token }}
-          persist-credentials: true
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ vars.terraform_version || 'latest' }}
-          terraform_wrapper: false
-
-      - name: Inititialize Terraform
-        run: terraform init -backend=false
-
-      - name: Terraform Validate
-        id: validate
-        shell: bash --noprofile --norc +e -o pipefail {0}
-        run: |
-          validation=$(terraform validate -json)
-          if [[ $(jq -r '.valid' <<< ${validation}) == 'true' ]]; then
-            printf '### :white_check_mark: Validation successful' >> $GITHUB_STEP_SUMMARY
-            exit 0
-          fi
-          printf '### :x: Validation failed\n' >> $GITHUB_STEP_SUMMARY
-          error_count=$(jq -r '.error_count' <<< ${validation})
-          warning_count=$(jq -r '.warning_count' <<< ${validation})
-          if [[ $error_count -gt 0 ]]; then
-            printf 'Found %d errors\n' $error_count >> $GITHUB_STEP_SUMMARY
-          fi
-          if [[ $warning_count -gt 0 ]]; then
-            printf 'Found %d warnings\n' $warning_count >> $GITHUB_STEP_SUMMARY
-          fi
-
-          # Loop through the results and provide actionable information
-          for issue in $(jq -r '.diagnostics[] | @base64' <<< ${validation}); do
-            _jq() {
-              printf ${issue} | base64 --decode | jq -r ${1}
-            }
-            printf '::%s title=%s,file=%s,line=%d,col=%d,endLine=%d,endColumn=%d::%s\n' \
-              "$(_jq '.severity')" \
-              "$(_jq '.summary')" \
-              "$(_jq '.range.filename')" \
-              "$(_jq '.range.start.line')" \
-              "$(_jq '.range.start.column')" \
-              "$(_jq '.range.end.line')" \
-              "$(_jq '.range.end.column')" \
-              "$(_jq '.detail')"
-            if [[ $(_jq '.severity') == 'error' ]]; then
-              icon=':x:'
-            else
-              icon=':$(_jq '.severity'):'
-            fi
-            printf '#### %s: %s\n' $icon "$(_jq '.summary')" >> $GITHUB_STEP_SUMMARY
-            printf '`%sL%d`\n' "$(_jq '.range.filename')" "$(_jq '.range.start.line')" >> $GITHUB_STEP_SUMMARY
-            printf '`%s`\n' "$(_jq '.snippet.context')" >> $GITHUB_STEP_SUMMARY
-            printf '%s\n' "$(_jq '.detail')" >> $GITHUB_STEP_SUMMARY
-          done
-          exit 1
+    uses: ./.github/workflows/terraform-validate-report.yaml
+    with:
+      runs-on: "['self-hosted', 'linux']"
+      # checkout-app-client-id: ${{ vars.CHECKOUT_APP_ID }}
+    # secrets:
+    #   checkout-app-private-key: ${{ secrets.CHECKOUT_APP_PRIVATE_KEY }}
 
   docs:
     name: Documentation
-    runs-on: [self-hosted, linux]
     needs:
       - lint
       - validate
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install terraform-docs
-        env:
-          TFDOCS_VERSION: ${{ vars.terraform_version || 'v0.17.0' }}
-        working-directory: ${{ runner.temp }}
-        run: |
-          os=$(uname | tr '[:upper:]' '[:lower:]')
-          arch=$(uname -m | sed 's/x86_64/amd64/')
-          curl -Lo ./terraform-docs.tar.gz "https://github.com/terraform-docs/terraform-docs/releases/download/${TFDOCS_VERSION}/terraform-docs-${TFDOCS_VERSION}-${os}-${arch}.tar.gz"
-          tar -xzf terraform-docs.tar.gz
-          chmod +x terraform-docs
-          mkdir -p ~/.local/bin
-          mv terraform-docs ~/.local/bin/terraform-docs
-
-      - name: Generate Docs
-        shell: bash --noprofile --norc +e -o pipefail {0}
-        run: |
-          ~/.local/bin/terraform-docs . --output-check
-          status=$?
-          if [ $status -ne 0 ]; then
-            printf "### :x: Documentation need to be updated" >> $GITHUB_STEP_SUMMARY
-            exit $status
-          fi
-          printf "### :white_check_mark: Documentation up to date" >> $GITHUB_STEP_SUMMARY
+    uses: ./.github/workflows/terraform-docs-report.yaml
+    with:
+      runs-on: "['self-hosted', 'linux']"
+      terraform-docs-version: v0.17.0
 
   plan:
     name: Change Plan

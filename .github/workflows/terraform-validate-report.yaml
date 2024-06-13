@@ -1,0 +1,99 @@
+on:
+  workflow_call:
+    inputs:
+      checkout-app-client-id:
+        description: Github App Client ID for checking out additional repositories
+        type: string
+        required: false
+      terraform-version:
+        description: Terraform version to use
+        type: string
+        required: false
+        default: latest
+      runs-on:
+        description: Runner to use
+        type: string
+        required: false
+        default: "['ubuntu-latest']"
+    secrets:
+      checkout-app-private-key:
+        description: Github App Private Key for checking out additional repositories
+        required: false
+
+env:
+  TF_IN_AUTOMATION: true
+
+jobs:
+  validate:
+    name: Validate Configuration
+    runs-on: ${{ fromJson(inputs.runs-on) }}
+    steps:
+      - name: Get Github App Token
+        uses: actions/create-github-app-token@v1
+        id: app-token
+        if: inputs.checkout-app-client-id != ''
+        with:
+          app-id: ${{ inputs.checkout-app-client-id }}
+          private-key: ${{ secrets.checkout-app-private-key }}
+          owner: ${{ github.repository_owner }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+          persist-credentials: true
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ inputs.terraform-version }}
+          terraform_wrapper: false
+
+      - name: Inititialize Terraform
+        run: terraform init -backend=false
+
+      # @TODO support recursion as an option
+      - name: Terraform Validate
+        id: validate
+        shell: bash --noprofile --norc +e -o pipefail {0}
+        run: |
+          validation=$(terraform validate -json)
+          if [[ $(jq -r '.valid' <<< ${validation}) == 'true' ]]; then
+            printf '### :white_check_mark: Validation successful' >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+          printf '### :x: Validation failed\n' >> $GITHUB_STEP_SUMMARY
+          error_count=$(jq -r '.error_count' <<< ${validation})
+          warning_count=$(jq -r '.warning_count' <<< ${validation})
+          if [[ $error_count -gt 0 ]]; then
+            printf 'Found %d errors\n' $error_count >> $GITHUB_STEP_SUMMARY
+          fi
+          if [[ $warning_count -gt 0 ]]; then
+            printf 'Found %d warnings\n' $warning_count >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Loop through the results and provide actionable information
+          for issue in $(jq -r '.diagnostics[] | @base64' <<< ${validation}); do
+            _jq() {
+              printf ${issue} | base64 --decode | jq -r ${1}
+            }
+            printf '::%s title=%s,file=%s,line=%d,col=%d,endLine=%d,endColumn=%d::%s\n' \
+              "$(_jq '.severity')" \
+              "$(_jq '.summary')" \
+              "$(_jq '.range.filename')" \
+              "$(_jq '.range.start.line')" \
+              "$(_jq '.range.start.column')" \
+              "$(_jq '.range.end.line')" \
+              "$(_jq '.range.end.column')" \
+              "$(_jq '.detail')"
+            if [[ $(_jq '.severity') == 'error' ]]; then
+              icon=':x:'
+            else
+              icon=':$(_jq '.severity'):'
+            fi
+            printf '#### %s: %s\n' $icon "$(_jq '.summary')" >> $GITHUB_STEP_SUMMARY
+            printf '`%sL%d`\n' "$(_jq '.range.filename')" "$(_jq '.range.start.line')" >> $GITHUB_STEP_SUMMARY
+            printf '`%s`\n' "$(_jq '.snippet.context')" >> $GITHUB_STEP_SUMMARY
+            printf '%s\n' "$(_jq '.detail')" >> $GITHUB_STEP_SUMMARY
+          done
+          exit 1

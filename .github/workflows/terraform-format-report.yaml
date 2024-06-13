@@ -1,15 +1,19 @@
 on:
   workflow_call:
     inputs:
-      terraform_version:
-        description: "Terraform version to use"
+      terraform-version:
+        description: Terraform version to use
         type: string
         required: false
         default: latest
       runs-on:
-        description: "Runner to use"
+        description: Runner to use
         type: string
-        required: true
+        required: false
+        default: "['ubuntu-latest']"
+
+env:
+  TF_IN_AUTOMATION: true
 
 jobs:
   format:
@@ -22,7 +26,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: ${{ inputs.terraform_version }}
+          terraform_version: ${{ inputs.terraform-version }}
           terraform_wrapper: false
 
       - name: Terraform Format

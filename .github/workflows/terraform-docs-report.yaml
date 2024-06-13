@@ -1,0 +1,45 @@
+on:
+  workflow_call:
+    inputs:
+      terraform-docs-version:
+        description: Terraform Docs version to use
+        type: string
+        required: false
+      runs-on:
+        description: Runner to use
+        type: string
+        required: false
+        default: "['ubuntu-latest']"
+
+jobs:
+  docs:
+    name: Check Terraform Docs
+    runs-on: ${{ fromJson(inputs.runs-on) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install terraform-docs
+        if: inputs.terraform-docs-version != ''
+        env:
+          TFDOCS_VERSION: ${{ inputs.terraform-docs-version }}
+        working-directory: ${{ runner.temp }}
+        run: |
+          os=$(uname | tr '[:upper:]' '[:lower:]')
+          arch=$(uname -m | sed 's/x86_64/amd64/')
+          curl -Lo ./terraform-docs.tar.gz "https://github.com/terraform-docs/terraform-docs/releases/download/${TFDOCS_VERSION}/terraform-docs-${TFDOCS_VERSION}-${os}-${arch}.tar.gz"
+          tar -xzf terraform-docs.tar.gz
+          chmod +x terraform-docs
+          mkdir -p ~/.local/bin
+          mv terraform-docs ~/.local/bin/terraform-docs
+
+      - name: Generate Docs
+        shell: bash --noprofile --norc +e -o pipefail {0}
+        run: |
+          ~/.local/bin/terraform-docs . --output-check
+          status=$?
+          if [ $status -ne 0 ]; then
+            printf "### :x: Documentation need to be updated" >> $GITHUB_STEP_SUMMARY
+            exit $status
+          fi
+          printf "### :white_check_mark: Documentation up to date" >> $GITHUB_STEP_SUMMARY
