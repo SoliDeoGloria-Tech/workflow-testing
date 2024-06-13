@@ -17,7 +17,7 @@ env:
 
 jobs:
   format:
-    name: Check Formatting
+    name: Report
     runs-on: ${{ fromJson(inputs.runs-on) }}
     steps:
       - name: Checkout

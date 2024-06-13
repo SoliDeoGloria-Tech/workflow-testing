@@ -13,7 +13,7 @@ on:
 
 jobs:
   docs:
-    name: Report
+    name: Suggest Fix
     runs-on: ${{ fromJson(inputs.runs-on) }}
     steps:
       - name: Checkout
@@ -37,13 +37,12 @@ jobs:
         shell: bash --noprofile --norc +e -o pipefail {0}
         run: |
           if [[ -f ~/.local/bin/terraform-docs ]]; then
-            ~/.local/bin/terraform-docs . --output-check
+            ~/.local/bin/terraform-docs .
           else
-            terraform-docs . --output-check
+            terraform-docs .
           fi
-          status=$?
-          if [ $status -ne 0 ]; then
-            printf "### :x: Documentation need to be updated" >> $GITHUB_STEP_SUMMARY
-            exit $status
-          fi
-          printf "### :white_check_mark: Documentation up to date" >> $GITHUB_STEP_SUMMARY
+
+      - name: Post Suggested Changes
+        uses: parkerbxyz/suggest-changes@v1
+        with:
+          comment: Please update the documentation. This can be done by running `terraform-docs .` before committing.

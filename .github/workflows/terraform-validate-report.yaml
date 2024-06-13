@@ -25,7 +25,7 @@ env:
 
 jobs:
   validate:
-    name: Validate Configuration
+    name: Report
     runs-on: ${{ fromJson(inputs.runs-on) }}
     steps:
       - name: Get Github App Token

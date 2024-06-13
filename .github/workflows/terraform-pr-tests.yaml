@@ -38,9 +38,6 @@ jobs:
     name: Linting
     runs-on: [self-hosted, linux]
     steps:
-      # The runner GITHUB_TOKEN only has permissions to its own repository
-      # so we need a token from an app to allow Terraform to download modules
-      # from other repositories in the org.
       - name: Get Github App Token
         uses: actions/create-github-app-token@v1
         id: app-token
