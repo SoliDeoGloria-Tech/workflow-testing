@@ -70,14 +70,41 @@ jobs:
           fi
           printf "### :white_check_mark: Linting successful" >> $GITHUB_STEP_SUMMARY
 
+  # validate:
+  #   name: Validation
+  #   uses: ./.github/workflows/terraform-validate-report.yaml
+  #   with:
+  #     runs-on: "['self-hosted', 'linux']"
+  #     # checkout-app-client-id: ${{ vars.CHECKOUT_APP_ID }}
+  #   # secrets:
+  #   #   checkout-app-private-key: ${{ secrets.CHECKOUT_APP_PRIVATE_KEY }}
+
   validate:
-    name: Validation
-    uses: ./.github/workflows/terraform-validate-report.yaml
-    with:
-      runs-on: "['self-hosted', 'linux']"
-      # checkout-app-client-id: ${{ vars.CHECKOUT_APP_ID }}
-    # secrets:
-    #   checkout-app-private-key: ${{ secrets.CHECKOUT_APP_PRIVATE_KEY }}
+    name: Validation (Action)
+    runs-on: [self-hosted, linux]
+    steps:
+      - name: Get Github App Token
+        uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ vars.CHECKOUT_APP_ID }}
+          private-key: ${{ secrets.CHECKOUT_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+          persist-credentials: true
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ vars.terraform_version || 'latest' }}
+          terraform_wrapper: false
+
+      - name: Terrafom Validation
+        uses: oWretch/terraform-validate@main
 
   docs:
     name: Documentation
@@ -164,7 +191,7 @@ jobs:
             });
 
             // 2. Prepare format of the comment
-            var header = `#### Terraform Plan`;
+            var header = `## Terraform Plan`;
             if (${{ steps.plan.outputs.exitcode}} == 2) {
               var planOutput = `${{ steps.plan.outputs.stdout}}`;
               if (planOutput.length > 64000) {
@@ -178,7 +205,7 @@ jobs:
             } else {
               planOutput = 'No changes';
             }
-            const output = `${header}\n\`\`\`\n${planOutput}\n\`\`\`\n`;
+            const output = `${header}\n\`\`\`${planOutput}\`\`\`\n`;
 
             // 3. If we have a comment, update it, otherwise create a new one
             if (botComment) {
