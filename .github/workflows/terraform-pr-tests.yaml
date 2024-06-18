@@ -121,6 +121,8 @@ jobs:
 
       - name: Terrafom Formatting
         uses: oWretch/terraform-format@main
+        with:
+          create-review: true
 
   docs:
     name: Documentation
