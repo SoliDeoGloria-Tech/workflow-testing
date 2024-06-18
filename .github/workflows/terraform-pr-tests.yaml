@@ -123,6 +123,7 @@ jobs:
         uses: oWretch/terraform-format@main
         with:
           create-review: true
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   docs:
     name: Documentation
