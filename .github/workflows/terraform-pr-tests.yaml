@@ -119,6 +119,14 @@ jobs:
         with:
           terraform_version: ${{ vars.terraform_version || 'latest' }}
 
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: ${{ vars.tofu_version || 'latest' }}
+
+      - name: Dump Variables
+        run: env
+
       - name: Terrafom Formatting
         uses: oWretch/terraform-format@main
         with:
