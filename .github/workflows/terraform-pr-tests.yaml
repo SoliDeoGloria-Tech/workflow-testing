@@ -36,7 +36,7 @@ jobs:
 
   format:
     name: Format (Action)
-    runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     steps:
       - name: Get Github App Token
         uses: actions/create-github-app-token@v1
@@ -73,7 +73,7 @@ jobs:
 
   lint:
     name: Linting
-    runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     steps:
       - name: Get Github App Token
         uses: actions/create-github-app-token@v1
@@ -109,7 +109,7 @@ jobs:
 
   validate:
     name: Validation
-    runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     steps:
       - name: Get Github App Token
         uses: actions/create-github-app-token@v1
@@ -149,7 +149,7 @@ jobs:
       - format
       - lint
       - validate
-    runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     outputs:
       changes_required: ${{ steps.plan.outputs.exitcode == 2 }}
     steps:
@@ -277,7 +277,7 @@ jobs:
 
   infracost:
     name: Cost Estimation
-    runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     needs:
       - plan
     if: needs.plan.outputs.changes_required == true
