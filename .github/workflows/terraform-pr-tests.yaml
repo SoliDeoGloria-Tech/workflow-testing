@@ -4,6 +4,7 @@ permissions:
   contents: read
   id-token: write # Required for OIDC authentication
   pull-requests: write # Required to update the PR with run details
+  checks: write
 
 on:
   pull_request:
@@ -108,7 +109,7 @@ jobs:
           printf "### :white_check_mark: Linting successful" >> $GITHUB_STEP_SUMMARY
 
   validate:
-    name: Validation
+    name: Validation (Action)
     runs-on: ubuntu-latest
     steps:
       - name: Get Github App Token
