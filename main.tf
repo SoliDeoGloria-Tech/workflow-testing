@@ -1,5 +1,5 @@
 resource "random_pet" "my_pet" {
-  length = "string"
+  length = 2
 }
 
-output "pet" {value = random_pet.my_pet.id}
+output "pet" { value = random_pet.my_pet.id }
